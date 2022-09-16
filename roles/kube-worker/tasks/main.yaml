@@ -1,0 +1,14 @@
+---
+- name: Push join command to worker
+  copy:
+    src: cache/join_command.sh
+    dest: /etc/kubernetes/join_command.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Add worker to the cluster
+  command: /bin/bash /etc/kubernetes/join_command.sh
+  register: kubeadm
+  args:
+    creates: /etc/kubernetes/kubelet.conf

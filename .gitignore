@@ -1,2 +1,5 @@
 # Ignore emacs backup files
 *~
+
+# Ignore ansible file cache
+cache

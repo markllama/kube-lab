@@ -1,0 +1,58 @@
+---
+- name: Kube Cluster Config File
+  copy:
+    src: "{{ role_path }}/files/cluster_config.yaml"
+    dest: /etc/kubernetes/cluster_config.yaml
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Configure Kube Master
+  command: /usr/bin/kubeadm init --config /etc/kubernetes/cluster_config.yaml
+  args:
+    creates: /etc/kubernetes/admin.conf
+  register: kubeadm
+
+- name: Write Init Output
+  copy:
+    dest: /etc/kubernetes/init_output.txt
+    content: "{{ kubeadm.stdout }}"
+  when: kubeadm is changed
+
+- name: Get Join Command
+  shell: |
+    /usr/bin/grep -A1 '^kubeadm ' /etc/kubernetes/init_output.txt |
+    tee /etc/kubernetes/join_command.sh
+  when: kubeadm is changed
+
+- name: Retrieve join command
+  fetch:
+    src: /etc/kubernetes/join_command.sh
+    dest: cache/
+    flat: true
+
+- name: Create kube dir for core user
+  file:
+    path: /home/core/.kube
+    state: directory
+    owner: core
+    group: core
+    mode: 0755
+
+- name: Copy admin conf to core user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/core/.kube/config
+    owner: core
+    group: core
+    mode: 0644
+    remote_src: true
+
+- name: Install CNI Networking Plugin (kube-router)
+  shell:
+    cmd: |
+      kubectl apply -f \
+      https://raw.githubusercontent.com/cloudnativelabs/kube-router/master/daemonset/kubeadm-kuberouter.yaml
+  vars:
+    ansible_become: false    
+      

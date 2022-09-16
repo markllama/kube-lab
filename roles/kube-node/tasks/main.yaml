@@ -1,0 +1,42 @@
+- name: Install Kube Packages
+  community.general.rpm_ostree_pkg:
+    name:
+    - cri-o
+    - kubeadm  
+    - kubectl
+    - kubelet
+    state: present
+  register: kube_package_status
+
+- name: Reboot after updates
+  reboot:
+    msg: Rebooting after kube package installs
+  when: kube_package_status.changed
+
+- name: Enable Container Runtime
+  systemd:
+    name: crio
+    state: started
+    enabled: true
+
+- name: Enable Kubernetes Agent
+  systemd:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Remove Unused Interface
+  community.general.nmcli:
+    conn_name: "Wired connection 1"
+    state: absent
+
+- name: Data Network Interface
+  community.general.nmcli:
+    conn_name: "{{ item.name }}"
+    type: ethernet
+    ifname: "{{ item.name }}"
+    ip4: "{{ item.ip4 }}"
+    state: present
+    method6: disabled
+  loop: "{{ networks }}"
+  when: networks is defined

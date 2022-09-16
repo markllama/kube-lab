@@ -1,0 +1,11 @@
+---
+# This is a playbook to prepare an fcos host to be a kubernetes node
+
+- name: Prepare Kubernetes Nodes
+  hosts: kube_nodes
+
+  remote_user: core
+  become: true
+
+  roles:
+  - kube-node
